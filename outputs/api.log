@@ -1,0 +1,6 @@
+INFO:     127.0.0.1:62410 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59612 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50898 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49888 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53618 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53628 - "POST /api/analyze HTTP/1.1" 200 OK
