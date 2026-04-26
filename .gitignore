@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Outputs (runtime data - not source code)
+outputs/history.json
+outputs/groups.json
+outputs/settings.json
+outputs/api.log
+outputs/api.err.log
+outputs/vite.log
+outputs/vite.err.log
+
+# Models (large binary files)
+models/*.pt
+models/*.pth
+models/*.bin
+
+# Data
+data/raw/*
+data/processed/*
+data/synthetic/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/synthetic/.gitkeep
+
+# Screenshots (generated)
+screenshots/*.png
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
