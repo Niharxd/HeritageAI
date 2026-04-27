@@ -35,7 +35,7 @@ data/synthetic/*
 !data/synthetic/.gitkeep
 
 # Screenshots (generated)
-screenshots/*.png
+# screenshots/*.png
 
 # OS
 .DS_Store

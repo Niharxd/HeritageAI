@@ -22,11 +22,6 @@ No cloud. No API keys. Everything runs on your machine.
 |---|---|
 | ![Stats](screenshots/06_stats_page.png) | ![Map](screenshots/07_map_page.png) |
 
-> To regenerate screenshots after starting the app, run:
-> ```bash
-> python generate_screenshots.py
-> ```
-
 ---
 
 ## Pipeline
