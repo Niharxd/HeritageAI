@@ -50,8 +50,16 @@ export async function getMapPins(): Promise<MapPin[]> {
   return handleResponse(await fetch(`${BASE}/map/pins`));
 }
 
-export async function getHistory(): Promise<HistoryRecord[]> {
-  return handleResponse(await fetch(`${BASE}/history`));
+export async function getHistory(
+  params: { search?: string; risk_level?: string; domain?: string; date_from?: string; date_to?: string } = {}
+): Promise<HistoryRecord[]> {
+  const q = new URLSearchParams();
+  if (params.search)     q.set("search",     params.search);
+  if (params.risk_level) q.set("risk_level", params.risk_level);
+  if (params.domain)     q.set("domain",     params.domain);
+  if (params.date_from)  q.set("date_from",  params.date_from);
+  if (params.date_to)    q.set("date_to",    params.date_to);
+  return handleResponse(await fetch(`${BASE}/history?${q}`));
 }
 
 export async function getRecord(id: string): Promise<{ full: AnalysisResult }> {
@@ -104,6 +112,46 @@ export async function removeFromGroup(groupId: string, recordId: string): Promis
 
 export async function getGroupTimeline(groupId: string): Promise<TimelinePoint[]> {
   return handleResponse(await fetch(`${BASE}/groups/${groupId}/timeline`));
+}
+
+export async function getUrgencyQueue(): Promise<HistoryRecord[]> {
+  return handleResponse(await fetch(`${BASE}/urgency-queue`));
+}
+
+export async function getChecklist(id: string): Promise<{ task: string; done: boolean }[]> {
+  return handleResponse(await fetch(`${BASE}/checklist/${id}`));
+}
+
+export async function updateChecklist(id: string, tasks: { task: string; done: boolean }[]): Promise<void> {
+  await fetch(`${BASE}/checklist/${id}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tasks }),
+  });
+}
+
+export async function checkDuplicate(file: File): Promise<{ duplicates: { id: string; distance: number }[]; is_duplicate: boolean }> {
+  const form = new FormData();
+  form.append("file", file);
+  return handleResponse(await fetch(`${BASE}/check-duplicate`, { method: "POST", body: form }));
+}
+
+export async function exportZip(recordIds: string[]): Promise<Blob> {
+  const res = await fetch(`${BASE}/export/zip`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ record_ids: recordIds }),
+  });
+  if (!res.ok) throw new Error("ZIP export failed");
+  return res.blob();
+}
+
+export function getDocxUrl(id: string): string {
+  return `${BASE}/docx/${id}`;
+}
+
+export function getQrUrl(id: string): string {
+  return `${BASE}/qr/${id}`;
 }
 
 export async function getSettings(): Promise<{ alert_threshold: number }> {

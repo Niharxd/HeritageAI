@@ -3,16 +3,18 @@ import {
   AlertTriangle, Brain, Download, FileImage, Flame,
   ImageUp, Loader2, ScanSearch, ScrollText, Sparkles,
   LayoutGrid, GitCompare, Pencil, Clock, Wrench, FlaskConical,
-  Mail, Github, Linkedin, Layers, Moon, Sun, BarChart2, Map
+  Mail, Github, Linkedin, Layers, Moon, Sun, BarChart2, Map,
+  Sliders, ListChecks, AlertOctagon, RefreshCw, QrCode
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { analyzeImage, analyzeBatch, getPdfUrl, getRecord, getLanguages } from "./api";
+import { analyzeImage, analyzeBatch, getPdfUrl, getRecord, getLanguages, checkDuplicate, getDocxUrl, getQrUrl } from "./api";
 import type { AnalysisResult, BatchResult, Domain, OcrLanguage } from "./types";
 import { Gallery } from "./pages/Gallery";
 import { Compare } from "./pages/Compare";
 import { LandingPage } from "./pages/LandingPage";
 import { StatsPage } from "./pages/StatsPage";
 import { MapView } from "./pages/MapView";
+import { UrgencyQueue } from "./pages/UrgencyQueue";
 import { AnnotationTool } from "./components/AnnotationTool";
 import { ProgressSteps } from "./components/ProgressSteps";
 import { ImageLightbox } from "./components/ImageLightbox";
@@ -20,13 +22,16 @@ import { HeatmapSlider } from "./components/HeatmapSlider";
 import { DetectionInspector } from "./components/DetectionInspector";
 import { BatchResults } from "./components/BatchResults";
 import { LocationPicker } from "./components/LocationPicker";
+import { EnhancementSlider } from "./components/EnhancementSlider";
+import { DamageCoverageBar } from "./components/DamageCoverageBar";
+import { ChecklistPanel } from "./components/ChecklistPanel";
 import { useToast } from "./components/Toast";
 import { useDarkMode } from "./components/DarkMode";
 import { checkImageQuality, QualityWarnings } from "./components/ImageQuality";
 import type { QualityResult } from "./components/ImageQuality";
 
-type View = "analyze" | "gallery" | "compare" | "stats" | "map";
-type Tab  = "results" | "annotate" | "heatmap" | "inspect";
+type View = "analyze" | "gallery" | "compare" | "stats" | "map" | "urgency";
+type Tab  = "results" | "annotate" | "heatmap" | "inspect" | "enhance" | "checklist";
 
 const riskClass    = { LOW: "riskLow", MEDIUM: "riskMedium", HIGH: "riskHigh" };
 const urgencyClass = { High: "urgHigh", Medium: "urgMedium", Low: "urgLow" };
@@ -35,7 +40,7 @@ const PIPELINE_STEPS = ["Observe", "Detect", "Enhance", "Interpret", "Predict", 
 export function App() {
   const toast              = useToast();
   const { dark, toggle }   = useDarkMode();
-  const [landed, setLanded] = useState(() => localStorage.getItem("launched") === "1");
+  const [landed, setLanded] = useState(false);
 
   const [view, setView]         = useState<View>("analyze");
   const [files, setFiles]       = useState<File[]>([]);
@@ -49,6 +54,10 @@ export function App() {
   const [lightbox, setLightbox] = useState<{ src: string; title: string } | null>(null);
   const [language, setLanguage] = useState("eng");
   const [languages, setLanguages] = useState<OcrLanguage[]>([]);
+  const [recentFiles, setRecentFiles] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("recentFiles") ?? "[]"); } catch { return []; }
+  });
+  const [dupWarning, setDupWarning] = useState<{ id: string; distance: number }[]>([]);
 
   useEffect(() => { getLanguages().then(setLanguages).catch(() => {}); }, []);
   const [quality,  setQuality]  = useState<QualityResult | null>(null);
@@ -69,6 +78,8 @@ export function App() {
       if (e.key === "c" || e.key === "C") setView("compare");
       if (e.key === "s" || e.key === "S") setView("stats");
       if (e.key === "m" || e.key === "M") setView("map");
+      if (e.key === "u" || e.key === "U") setView("urgency");
+      if (e.key === "b" || e.key === "B") { setView("analyze"); dropRef.current?.click(); }
       if (e.key === "Escape") setLightbox(null);
       if ((e.key === "Enter") && view === "analyze" && files.length > 0 && !loading) runAnalysis();
     }
@@ -83,12 +94,28 @@ export function App() {
     setBatch(null);
     setError("");
     setQuality(null);
+    setDupWarning([]);
     previews.forEach(p => URL.revokeObjectURL(p));
     setPreviews(selected.map(f => URL.createObjectURL(f)));
     if (selected.length === 1) {
       const q = await checkImageQuality(selected[0]);
       setQuality(q);
       if (!q.ok) toast("Image quality warnings detected", "info");
+      // duplicate check
+      try {
+        const dup = await checkDuplicate(selected[0]);
+        if (dup.is_duplicate) {
+          setDupWarning(dup.duplicates);
+          toast(`Possible duplicate detected (${dup.duplicates.length} match${dup.duplicates.length > 1 ? "es" : ""})`, "info");
+        }
+      } catch { /* ignore */ }
+      // recent files
+      const name = selected[0].name;
+      setRecentFiles(prev => {
+        const updated = [name, ...prev.filter(n => n !== name)].slice(0, 5);
+        localStorage.setItem("recentFiles", JSON.stringify(updated));
+        return updated;
+      });
     }
   }
 
@@ -177,22 +204,22 @@ export function App() {
     }
   }
 
-  async function openFromGallery(id: string) {
-    try {
-      const rec = await getRecord(id);
-      setResult(rec.full as AnalysisResult);
-      setBatch(null);
-      setView("analyze");
-      setActiveTab("results");
-    } catch { /* ignore */ }
+  function downloadDocx(id: string) {
+    const a = document.createElement("a");
+    a.href = getDocxUrl(id); a.download = `heritage_${id.slice(0, 8)}.docx`; a.click();
+    toast("DOCX field report downloaded");
   }
 
-  function launch() {
+  function openQr(id: string) {
+    setLightbox({ src: getQrUrl(id), title: "QR Code — Archive Link" });
+  }
+
+  async function openFromGallery(id: string) {
     localStorage.setItem("launched", "1");
     setLanded(true);
   }
 
-  if (!landed) return <LandingPage onLaunch={launch} />;
+  if (!landed) return <LandingPage onLaunch={() => setLanded(true)} />;
 
   return (
     <main className="appShell">
@@ -215,6 +242,7 @@ export function App() {
             ["compare", "Compare",  <GitCompare size={16} />, "C"],
             ["stats",   "Stats",    <BarChart2  size={16} />, "S"],
             ["map",     "Map",      <Map        size={16} />, "M"],
+            ["urgency", "Urgent",   <AlertOctagon size={16} />, "U"],
           ] as [View, string, ReactNode, string][]).map(([v, label, icon, key]) => (
             <button key={v} type="button"
               className={`navItem ${view === v ? "active" : ""}`}
@@ -251,6 +279,22 @@ export function App() {
             </label>
 
             {quality && <QualityWarnings warnings={quality.warnings} />}
+
+            {dupWarning.length > 0 && (
+              <div className="dupWarning">
+                <AlertTriangle size={15} />
+                <span>Possible duplicate — {dupWarning.length} similar record{dupWarning.length > 1 ? "s" : ""} in archive</span>
+              </div>
+            )}
+
+            {recentFiles.length > 0 && files.length === 0 && (
+              <div className="recentFiles">
+                <p>Recent</p>
+                {recentFiles.map(name => (
+                  <span key={name} className="recentFile" title={name}>{name}</span>
+                ))}
+              </div>
+            )}
 
             {isBatch && (
               <div className="batchBadge">
@@ -300,9 +344,21 @@ export function App() {
                 <button className="secondaryButton" type="button" onClick={() => downloadPdf(result.id)}>
                   <Download size={16} /> PDF
                 </button>
+                <button className="secondaryButton" type="button" onClick={() => downloadDocx(result.id)}>
+                  <Download size={16} /> DOCX
+                </button>
+                <button className="secondaryButton" type="button" onClick={() => openQr(result.id)}>
+                  <QrCode size={16} /> QR
+                </button>
                 <button className="secondaryButton" type="button" onClick={exportCsv}
                   style={{ gridColumn: "1 / -1" }}>
                   <Download size={16} /> CSV Detections
+                </button>
+                <button className="secondaryButton" type="button"
+                  style={{ gridColumn: "1 / -1" }}
+                  onClick={() => { setResult(null); setBatch(null); setError(""); }}
+                >
+                  <RefreshCw size={16} /> Re-run / New
                 </button>
               </div>
             )}
@@ -336,6 +392,7 @@ export function App() {
         {view === "compare" && <Compare />}
         {view === "stats"   && <StatsPage />}
         {view === "map"     && <MapView onOpen={openFromGallery} />}
+        {view === "urgency" && <UrgencyQueue onOpen={openFromGallery} />}
 
         {view === "analyze" && (
           <>
@@ -362,7 +419,7 @@ export function App() {
                     </span>
                   ))}
                 </div>
-                <p className="shortcutHint">Shortcuts: <kbd>A</kbd> Analyse · <kbd>G</kbd> Archive · <kbd>C</kbd> Compare · <kbd>S</kbd> Stats · <kbd>M</kbd> Map</p>
+                <p className="shortcutHint">Shortcuts: <kbd>A</kbd> Analyse · <kbd>G</kbd> Archive · <kbd>C</kbd> Compare · <kbd>S</kbd> Stats · <kbd>M</kbd> Map · <kbd>U</kbd> Urgent · <kbd>B</kbd> Batch</p>
               </section>
             )}
 
@@ -370,10 +427,12 @@ export function App() {
               <>
                 <div className="tabBar">
                   {([
-                    ["results",  "Results",  <FlaskConical size={15} />],
-                    ["inspect",  "Inspect",  <ScanSearch size={15} />],
-                    ["heatmap",  "Heatmap",  <Flame size={15} />],
-                    ["annotate", "Annotate", <Pencil size={15} />],
+                    ["results",   "Results",   <FlaskConical size={15} />],
+                    ["inspect",   "Inspect",   <ScanSearch size={15} />],
+                    ["heatmap",   "Heatmap",   <Flame size={15} />],
+                    ["enhance",   "Enhance",   <Sliders size={15} />],
+                    ["checklist", "Checklist", <ListChecks size={15} />],
+                    ["annotate",  "Annotate",  <Pencil size={15} />],
                   ] as [Tab, string, ReactNode][]).map(([t, label, icon]) => (
                     <button key={t} type="button"
                       className={activeTab === t ? "active" : ""}
@@ -382,6 +441,24 @@ export function App() {
                     </button>
                   ))}
                 </div>
+
+                {activeTab === "enhance" && (
+                  <div className="panel">
+                    <div className="panelHeader"><h3>Before / After Enhancement</h3></div>
+                    <div style={{ padding: 16 }}>
+                      <EnhancementSlider original={result.images.original} enhanced={result.images.enhanced} />
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "checklist" && (
+                  <div className="panel">
+                    <div className="panelHeader"><h3>Conservator Checklist</h3></div>
+                    <div style={{ padding: 16 }}>
+                      <ChecklistPanel recordId={result.id} />
+                    </div>
+                  </div>
+                )}
 
                 {activeTab === "annotate" && (
                   <div className="panel">
@@ -419,6 +496,15 @@ export function App() {
                       <Metric icon={<Clock />}       label="Degradation Age"    value={result.age.estimated_age} small />
                       <Metric icon={<FlaskConical />} label="Age Confidence"    value={result.age.confidence} small />
                     </section>
+
+                    {result.detection.detections.length > 0 && (
+                      <div className="panel">
+                        <div className="panelHeader"><h3>Damage Coverage by Type</h3></div>
+                        <div style={{ padding: 16 }}>
+                          <DamageCoverageBar detections={result.detection.detections} />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="ornamentDivider">✦ ✦ ✦</div>
 

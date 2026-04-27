@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2, ScanSearch, TrendingUp, Plus, Tag, Bell, X } from "lucide-react";
+import { Trash2, ScanSearch, TrendingUp, Plus, Tag, Bell, X, Search, Download, Filter } from "lucide-react";
 import {
   addToGroup, createGroup, deleteGroup, deleteRecord,
   getGroups, getGroupTimeline, getHistory, getTrend,
-  removeFromGroup, saveNotes, getSettings, updateSettings
+  removeFromGroup, saveNotes, getSettings, updateSettings, exportZip
 } from "../api";
 import { TrendChart } from "../components/TrendChart";
 import type { ArtifactGroup, HistoryRecord, TimelinePoint, TrendPoint } from "../types";
@@ -24,16 +24,32 @@ export function Gallery({ onOpen }: { onOpen: (id: string) => void }) {
   const [timeline, setTimeline]     = useState<{ group: ArtifactGroup; points: TimelinePoint[] } | null>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
+  // Search / filter state
+  const [search,    setSearch]    = useState("");
+  const [riskFilter, setRiskFilter] = useState("");
+  const [domainFilter, setDomainFilter] = useState("");
+  const [dateFrom,  setDateFrom]  = useState("");
+  const [dateTo,    setDateTo]    = useState("");
+  const [showFilter, setShowFilter] = useState(false);
+  const [selected,  setSelected]  = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
+
+  async function loadRecords() {
+    const h = await getHistory({ search, risk_level: riskFilter, domain: domainFilter, date_from: dateFrom, date_to: dateTo });
+    setRecords(h.reverse());
+  }
+
   useEffect(() => {
-    Promise.all([getHistory(), getTrend(), getGroups(), getSettings()])
-      .then(([h, t, g, s]) => {
-        setRecords(h.reverse());
+    Promise.all([loadRecords(), getTrend(), getGroups(), getSettings()])
+      .then(([, t, g, s]) => {
         setTrend(t);
         setGroups(g);
         setThreshold(s.alert_threshold ?? 70);
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { loadRecords(); }, [search, riskFilter, domainFilter, dateFrom, dateTo]);
 
   async function remove(id: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -50,8 +66,31 @@ export function Gallery({ onOpen }: { onOpen: (id: string) => void }) {
   async function handleThreshold(val: number) {
     setThreshold(val);
     await updateSettings({ alert_threshold: val });
-    const h = await getHistory();
-    setRecords(h.reverse());
+    loadRecords();
+  }
+
+  async function handleExportZip() {
+    const ids = selected.size > 0 ? Array.from(selected) : records.map(r => r.id);
+    if (!ids.length) return;
+    setExporting(true);
+    try {
+      const blob = await exportZip(ids);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url; a.download = "heritage_export.zip"; a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function toggleSelect(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setSelected(s => {
+      const n = new Set(s);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
   }
 
   async function handleCreateGroup() {
@@ -98,11 +137,64 @@ export function Gallery({ onOpen }: { onOpen: (id: string) => void }) {
           <p>{records.length} record{records.length !== 1 ? "s" : ""} stored</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" className="secondaryButton" onClick={() => setShowFilter(f => !f)}>
+            <Filter size={16} />{showFilter ? "Hide Filters" : "Filter"}
+          </button>
+          <button type="button" className="secondaryButton" onClick={handleExportZip} disabled={exporting}>
+            <Download size={16} />{exporting ? "Exporting…" : selected.size > 0 ? `ZIP (${selected.size})` : "ZIP All"}
+          </button>
           <button type="button" className="secondaryButton" onClick={() => setShowTrend(t => !t)}>
             <TrendingUp size={16} />{showTrend ? "Hide Trend" : "Show Trend"}
           </button>
         </div>
       </div>
+
+      {/* Search & Filter */}
+      <div className="gallerySearchRow">
+        <div className="gallerySearchInput">
+          <Search size={15} />
+          <input
+            placeholder="Search by domain, notes, location…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && <button type="button" onClick={() => setSearch("")}><X size={13} /></button>}
+        </div>
+      </div>
+
+      {showFilter && (
+        <div className="galleryFilters">
+          <div className="filterGroup">
+            <label>Risk Level</label>
+            <select value={riskFilter} onChange={e => setRiskFilter(e.target.value)}>
+              <option value="">All</option>
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+            </select>
+          </div>
+          <div className="filterGroup">
+            <label>Domain</label>
+            <select value={domainFilter} onChange={e => setDomainFilter(e.target.value)}>
+              <option value="">All</option>
+              <option value="manuscript">Manuscript</option>
+              <option value="monument">Monument</option>
+            </select>
+          </div>
+          <div className="filterGroup">
+            <label>From</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          </div>
+          <div className="filterGroup">
+            <label>To</label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          </div>
+          <button type="button" className="secondaryButton" style={{ alignSelf: "flex-end", minHeight: 36, fontSize: 12 }}
+            onClick={() => { setRiskFilter(""); setDomainFilter(""); setDateFrom(""); setDateTo(""); }}>
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* Alert threshold */}
       <div className="alertThreshold">
@@ -224,7 +316,7 @@ export function Gallery({ onOpen }: { onOpen: (id: string) => void }) {
       ) : (
         <div className="galleryGrid">
           {records.map(r => (
-            <div key={r.id} className={`galleryCard ${r.alert ? "galleryAlert" : ""}`}
+            <div key={r.id} className={`galleryCard ${r.alert ? "galleryAlert" : ""} ${selected.has(r.id) ? "gallerySelected" : ""}`}
               onClick={() => onOpen(r.id)}>
               <div className="galleryThumb">
                 <img src={r.thumbnail} alt="Artifact thumbnail" />
@@ -247,6 +339,11 @@ export function Gallery({ onOpen }: { onOpen: (id: string) => void }) {
 
               {/* Action buttons */}
               <div className="galleryActions" onClick={e => e.stopPropagation()}>
+                <button type="button" title="Select for ZIP"
+                  onClick={e => toggleSelect(r.id, e)}
+                  style={{ color: selected.has(r.id) ? "var(--gold-bright)" : undefined }}>
+                  {selected.has(r.id) ? "☑" : "☐"}
+                </button>
                 <button type="button" title="Add note"
                   onClick={() => { setEditNotes(r.id); setNotesVal(r.notes ?? ""); }}>
                   ✎

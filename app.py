@@ -3,16 +3,18 @@ from __future__ import annotations
 import base64
 import io
 import json
+import zipfile
 
 import cv2
 import numpy as np
 import requests as http_requests
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from PIL import Image
 
 from backend import history_store
+from backend.duplicate_detector import find_duplicates, phash_from_array
 from backend.ocr_engine import SUPPORTED_LANGUAGES
 from backend.pdf_report import generate_pdf
 from backend.pipeline import CulturalHeritagePipeline
@@ -83,7 +85,7 @@ def run_pipeline(raw: bytes, domain: str, language: str = "eng") -> dict:
         "domain":      result["domain"],
         "images":      images,
         "detection":   {"severity": detection["severity"], "detections": detection["detections"]},
-        "enhancement": {"improvement": result["enhancement"]["improvement"]},
+        "enhancement": {"improvement": result["enhancement"]["improvement"], "image": images["enhanced"]},
         "semantic":    semantic,
         "risk":        result["risk"],
         "age":         result["age"],
@@ -91,7 +93,8 @@ def run_pipeline(raw: bytes, domain: str, language: str = "eng") -> dict:
         "explanation": result["explanation"]["risk"],
     }
 
-    record_id = history_store.save_record(response, make_thumbnail(image))
+    phash = phash_from_array(image)
+    record_id = history_store.save_record(response, make_thumbnail(image), phash=phash)
     response["id"] = record_id
     return response
 
@@ -160,8 +163,14 @@ async def analyze_batch(
 # ── History ───────────────────────────────────────────────────────────────────
 
 @app.get("/api/history")
-def get_history() -> list:
-    return history_store.get_all()
+def get_history(
+    search:     str = Query(""),
+    risk_level: str = Query(""),
+    domain:     str = Query(""),
+    date_from:  str = Query(""),
+    date_to:    str = Query(""),
+) -> list:
+    return history_store.get_all(search=search, risk_level=risk_level, domain=domain, date_from=date_from, date_to=date_to)
 
 
 @app.get("/api/history/trend")
@@ -303,6 +312,132 @@ def download_report(record_id: str) -> Response:
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=heritage_{record_id[:8]}.pdf"},
     )
+
+
+# ── Urgency Queue ───────────────────────────────────────────────────────────────
+
+@app.get("/api/urgency-queue")
+def get_urgency_queue() -> list:
+    return history_store.get_urgency_queue()
+
+
+# ── Checklist ──────────────────────────────────────────────────────────────────
+
+@app.get("/api/checklist/{record_id}")
+def get_checklist(record_id: str) -> list:
+    return history_store.get_checklist(record_id)
+
+
+@app.post("/api/checklist/{record_id}")
+async def update_checklist(record_id: str, payload: dict) -> list:
+    tasks = payload.get("tasks", [])
+    return history_store.update_checklist(record_id, tasks)
+
+
+# ── Duplicate Detection ────────────────────────────────────────────────────────
+
+@app.post("/api/check-duplicate")
+async def check_duplicate(file: UploadFile = File(...)) -> dict:
+    raw   = await file.read()
+    image = read_upload_as_rgb(raw)
+    phash = phash_from_array(image)
+    stored = history_store.get_all_phashes()
+    matches = find_duplicates(phash, stored)
+    return {"duplicates": matches, "is_duplicate": len(matches) > 0}
+
+
+# ── ZIP Export ─────────────────────────────────────────────────────────────────
+
+@app.post("/api/export/zip")
+async def export_zip(payload: dict) -> Response:
+    record_ids = payload.get("record_ids", [])
+    if not record_ids:
+        raise HTTPException(status_code=400, detail="No record IDs provided.")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for rid in record_ids:
+            record = history_store.get_record(rid)
+            if not record:
+                continue
+            short = rid[:8]
+            zf.writestr(f"{short}/analysis.json", json.dumps(record, indent=2))
+            try:
+                pdf_bytes = generate_pdf(record)
+                zf.writestr(f"{short}/report.pdf", pdf_bytes)
+            except Exception:
+                pass
+            thumb_b64 = record.get("thumbnail", "")
+            if thumb_b64:
+                img_data = base64.b64decode(thumb_b64.split(",", 1)[-1])
+                zf.writestr(f"{short}/thumbnail.png", img_data)
+    buf.seek(0)
+    return Response(
+        content=buf.read(),
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=heritage_export.zip"},
+    )
+
+
+# ── DOCX Field Report ─────────────────────────────────────────────────────────
+
+@app.get("/api/docx/{record_id}")
+def download_docx(record_id: str) -> Response:
+    try:
+        from docx import Document
+        from docx.shared import Pt
+    except ImportError:
+        raise HTTPException(status_code=501, detail="python-docx not installed. Run: pip install python-docx")
+
+    record = history_store.get_record(record_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found.")
+
+    full = record.get("full", record)
+    doc  = Document()
+    doc.add_heading("Heritage Conservation Field Report", 0)
+    doc.add_paragraph(f"Record ID: {record_id}")
+    doc.add_paragraph(f"Date: {record.get('timestamp', '')}")
+    doc.add_paragraph(f"Domain: {record.get('domain', '')}")
+    doc.add_heading("Risk Assessment", level=1)
+    risk = full.get("risk", {})
+    doc.add_paragraph(f"Level: {risk.get('level', '')}   Score: {risk.get('score', 0):.1f}")
+    for reason in risk.get("reasons", []):
+        doc.add_paragraph(f"• {reason}", style="List Bullet")
+    doc.add_heading("Damage Detection", level=1)
+    det = full.get("detection", {})
+    doc.add_paragraph(f"Severity: {det.get('severity', 0):.1f} / 100")
+    for d in det.get("detections", []):
+        doc.add_paragraph(f"• {d['label']} — severity {d['severity']:.1f}", style="List Bullet")
+    doc.add_heading("Restoration Recommendations", level=1)
+    for s in full.get("suggestions", {}).get("suggestions", []):
+        doc.add_paragraph(f"[{s['urgency']}] {s['technique']}: {s['description']}", style="List Bullet")
+    doc.add_heading("Conservator Notes", level=1)
+    doc.add_paragraph(record.get("notes", "") or "(none)")
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return Response(
+        content=buf.read(),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f"attachment; filename=heritage_{record_id[:8]}.docx"},
+    )
+
+
+# ── QR Code ───────────────────────────────────────────────────────────────────
+
+@app.get("/api/qr/{record_id}")
+def get_qr(record_id: str) -> Response:
+    try:
+        import qrcode
+    except ImportError:
+        raise HTTPException(status_code=501, detail="qrcode not installed. Run: pip install qrcode[pil]")
+    url = f"http://127.0.0.1:5173/?record={record_id}"
+    img = qrcode.make(url)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return Response(content=buf.read(), media_type="image/png")
 
 
 # ── Compare ───────────────────────────────────────────────────────────────────

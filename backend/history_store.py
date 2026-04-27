@@ -5,9 +5,10 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-HISTORY_FILE  = Path(__file__).parent.parent / "outputs" / "history.json"
-GROUPS_FILE   = Path(__file__).parent.parent / "outputs" / "groups.json"
-SETTINGS_FILE = Path(__file__).parent.parent / "outputs" / "settings.json"
+HISTORY_FILE   = Path(__file__).parent.parent / "outputs" / "history.json"
+GROUPS_FILE    = Path(__file__).parent.parent / "outputs" / "groups.json"
+SETTINGS_FILE  = Path(__file__).parent.parent / "outputs" / "settings.json"
+CHECKLIST_FILE = Path(__file__).parent.parent / "outputs" / "checklists.json"
 
 
 def _load() -> list[dict]:
@@ -54,7 +55,21 @@ def _save_settings(settings: dict) -> None:
 
 # ── Records ───────────────────────────────────────────────────────────────────
 
-def save_record(result: dict, thumbnail_b64: str, location: dict | None = None) -> str:
+def _load_checklists() -> dict:
+    if not CHECKLIST_FILE.exists():
+        return {}
+    try:
+        return json.loads(CHECKLIST_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_checklists(data: dict) -> None:
+    CHECKLIST_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CHECKLIST_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def save_record(result: dict, thumbnail_b64: str, location: dict | None = None, phash: int | None = None) -> str:
     records = _load()
     record_id = str(uuid.uuid4())
     records.append({
@@ -67,17 +82,37 @@ def save_record(result: dict, thumbnail_b64: str, location: dict | None = None) 
         "age":       result.get("age", {}),
         "notes":     "",
         "location":  location,
+        "phash":     phash,
         "full":      result,
     })
     _save(records)
     return record_id
 
 
-def get_all() -> list[dict]:
+def get_all(
+    search: str = "",
+    risk_level: str = "",
+    domain: str = "",
+    date_from: str = "",
+    date_to: str = "",
+) -> list[dict]:
     records   = _load()
     threshold = _load_settings().get("alert_threshold", 70)
-    return [
-        {
+    result = []
+    for r in records:
+        if search and search.lower() not in (r.get("notes", "") + r.get("domain", "")).lower():
+            loc_name = (r.get("location") or {}).get("place_name", "")
+            if search.lower() not in loc_name.lower():
+                continue
+        if risk_level and r.get("risk", {}).get("level", "") != risk_level:
+            continue
+        if domain and r.get("domain", "") != domain:
+            continue
+        if date_from and r["timestamp"] < date_from:
+            continue
+        if date_to and r["timestamp"] > date_to + "T23:59:59":
+            continue
+        result.append({
             "id":        r["id"],
             "timestamp": r["timestamp"],
             "domain":    r["domain"],
@@ -88,9 +123,8 @@ def get_all() -> list[dict]:
             "notes":     r.get("notes", ""),
             "location":  r.get("location"),
             "alert":     r.get("risk", {}).get("score", 0) >= threshold,
-        }
-        for r in records
-    ]
+        })
+    return result
 
 
 def get_record(record_id: str) -> dict | None:
@@ -230,6 +264,61 @@ def get_group_timeline(group_id: str) -> list[dict]:
                 "thumbnail":  r["thumbnail"],
             })
     return sorted(timeline, key=lambda x: x["timestamp"])
+
+
+# ── Urgency Queue ─────────────────────────────────────────────────────────────
+
+def get_urgency_queue() -> list[dict]:
+    records   = _load()
+    threshold = _load_settings().get("alert_threshold", 70)
+    high = [
+        {
+            "id":        r["id"],
+            "timestamp": r["timestamp"],
+            "domain":    r["domain"],
+            "thumbnail": r["thumbnail"],
+            "severity":  r["severity"],
+            "risk":      r["risk"],
+            "age":       r.get("age", {}),
+            "location":  r.get("location"),
+            "alert":     r.get("risk", {}).get("score", 0) >= threshold,
+        }
+        for r in records
+        if r.get("risk", {}).get("level") == "HIGH"
+    ]
+    return sorted(high, key=lambda x: x["risk"].get("score", 0), reverse=True)
+
+
+# ── Checklist ─────────────────────────────────────────────────────────────────
+
+DEFAULT_TASKS = [
+    "Photograph reverse side",
+    "Apply consolidant",
+    "Document damage extent",
+    "Consult specialist",
+    "Schedule follow-up analysis",
+]
+
+
+def get_checklist(record_id: str) -> list[dict]:
+    data = _load_checklists()
+    if record_id not in data:
+        data[record_id] = [{"task": t, "done": False} for t in DEFAULT_TASKS]
+        _save_checklists(data)
+    return data[record_id]
+
+
+def update_checklist(record_id: str, tasks: list[dict]) -> list[dict]:
+    data = _load_checklists()
+    data[record_id] = tasks
+    _save_checklists(data)
+    return tasks
+
+
+# ── Duplicate Detection ────────────────────────────────────────────────────────
+
+def get_all_phashes() -> list[dict]:
+    return [{"id": r["id"], "phash": r.get("phash")} for r in _load() if r.get("phash") is not None]
 
 
 # ── Settings ──────────────────────────────────────────────────────────────────

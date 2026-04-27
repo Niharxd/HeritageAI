@@ -14,7 +14,7 @@ export function StatsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getHistory(), getTrend(20)])
+    Promise.all([getHistory(), getTrend()])
       .then(([h, t]) => { setRecords(h); setTrend(t); })
       .finally(() => setLoading(false));
   }, []);

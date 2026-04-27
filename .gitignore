@@ -15,6 +15,7 @@ frontend/.vite/
 outputs/history.json
 outputs/groups.json
 outputs/settings.json
+outputs/checklists.json
 outputs/api.log
 outputs/api.err.log
 outputs/vite.log
