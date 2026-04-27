@@ -12,15 +12,15 @@ No cloud. No API keys. Everything runs on your machine.
 
 | Landing Page | Analyse View |
 |---|---|
-| ![Landing Page](screenshots/01_landing_page.png) | ![Analyse](screenshots/02_analyse_empty.png) |
+| ![Landing Page](frontend/screenshots/01_landing_page.png) | ![Analyse](frontend/screenshots/02_analyse_empty.png) |
 
 | Archive | Dark Mode |
 |---|---|
-| ![Archive](screenshots/04_archive_page.png) | ![Dark Mode](screenshots/03_dark_mode.png) |
+| ![Archive](frontend/screenshots/04_archive_page.png) | ![Dark Mode](frontend/screenshots/03_dark_mode.png) |
 
 | Statistics | Map View |
 |---|---|
-| ![Stats](screenshots/06_stats_page.png) | ![Map](screenshots/07_map_page.png) |
+| ![Stats](frontend/screenshots/06_stats_page.png) | ![Map](frontend/screenshots/07_map_page.png) |
 
 ---
 
