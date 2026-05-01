@@ -4,7 +4,8 @@ import type {
   TimelinePoint, TrendPoint
 } from "./types";
 
-const BASE = "/api";
+const IS_PROD = window.location.hostname !== "127.0.0.1" && window.location.hostname !== "localhost";
+const BASE = IS_PROD ? "https://heritageai-fybv.onrender.com/api" : "/api";
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
