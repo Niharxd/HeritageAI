@@ -26,6 +26,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://heritage-ai.vercel.app",  # update this after Vercel gives you a URL
+    "https://*.vercel.app",
 ]
 
 app.add_middleware(

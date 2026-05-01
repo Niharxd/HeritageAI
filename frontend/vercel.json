@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://heritage-ai-backend.onrender.com/api/:path*"
+      "destination": "https://heritageai-25br.onrender.com/api/:path*"
     }
   ]
 }
