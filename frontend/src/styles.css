@@ -1617,27 +1617,32 @@ textarea, pre {
 /* ── Progress Steps ── */
 
 .progressSteps {
-  display: flex;
-  align-items: center;
-  gap: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
   padding: 10px 0;
 }
 
 .progressStep {
   display: flex;
   align-items: center;
-  gap: 5px;
-  flex: 1;
+  gap: 7px;
   opacity: 0.35;
   transition: opacity 0.3s;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: rgba(184,134,11,0.04);
 }
 
-.progressStep.active { opacity: 1; }
-.progressStep.done   { opacity: 0.7; }
+.progressStep.active {
+  opacity: 1;
+  background: rgba(184,134,11,0.12);
+}
+.progressStep.done { opacity: 0.7; }
 
 .progressIcon {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -1651,10 +1656,9 @@ textarea, pre {
 .progressStep span {
   font-family: "Cinzel", serif;
   font-size: 9px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--sepia-light);
-  white-space: nowrap;
 }
 
 .progressDot {
@@ -1663,14 +1667,10 @@ textarea, pre {
   border-radius: 50%;
   background: var(--sepia-light);
   display: block;
+  flex-shrink: 0;
 }
 
-.progressLine {
-  flex: 1;
-  height: 1px;
-  background: rgba(184,134,11,0.2);
-  margin: 0 4px;
-}
+.progressLine { display: none; }
 
 /* ── Batch ── */
 
