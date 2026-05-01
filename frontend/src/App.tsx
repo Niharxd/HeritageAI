@@ -59,7 +59,8 @@ export function App() {
   });
   const [dupWarning, setDupWarning] = useState<{ id: string; distance: number }[]>([]);
 
-  useEffect(() => { getLanguages().then(setLanguages).catch(() => {}); }, []);
+  // OCR language loading disabled on deployed version
+  // useEffect(() => { getLanguages().then(setLanguages).catch(() => {}); }, []);
   const [quality,  setQuality]  = useState<QualityResult | null>(null);
   const [dragging, setDragging] = useState(false);
   const dropRef = useRef<HTMLLabelElement>(null);
@@ -313,20 +314,7 @@ export function App() {
               </div>
             </div>
 
-            {languages.length > 0 && (
-              <div className="controlGroup">
-                <label>OCR Language</label>
-                <select
-                  className="langSelect"
-                  value={language}
-                  onChange={e => setLanguage(e.target.value)}
-                >
-                  {languages.map(l => (
-                    <option key={l.code} value={l.code}>{l.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+
 
             <button className="primaryButton" type="button"
               disabled={files.length === 0 || loading} onClick={runAnalysis}>
@@ -530,7 +518,7 @@ export function App() {
                           <h3>{result.domain === "manuscript" ? "Extracted Text" : "Structured Labels"}</h3>
                         </div>
                         {result.domain === "manuscript"
-                          ? <textarea readOnly value={result.semantic.text || ""} />
+                          ? <div style={{ padding: 16, opacity: 0.6, fontSize: 13 }}>OCR is available in the local version. Run the app locally for full text extraction support.</div>
                           : <pre>{JSON.stringify(result.semantic.labels ?? {}, null, 2)}</pre>
                         }
                       </div>
