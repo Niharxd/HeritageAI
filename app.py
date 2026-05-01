@@ -25,7 +25,7 @@ app = FastAPI(title="Cultural Heritage Preservation API", version="3.0.0")
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://heritage-ai.vercel.app",  # update this after Vercel gives you a URL
+    "https://heritage-kjqjsvsil-niharxds-projects.vercel.app",
     "https://*.vercel.app",
 ]
 
