@@ -22,18 +22,9 @@ from utils.visualization import draw_detections, overlay_mask
 
 app = FastAPI(title="Cultural Heritage Preservation API", version="3.0.0")
 
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://heritage-kjqjsvsil-niharxds-projects.vercel.app",
-    "https://heritage-r3cnm359a-niharxds-projects.vercel.app",
-    "https://*.vercel.app",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
