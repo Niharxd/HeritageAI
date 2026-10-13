@@ -1,10 +1,47 @@
-# Heritage AI — AI-Based Cultural Heritage Preservation System
+# Heritage AI - AI-Based Cultural Heritage Preservation System
 
-> Built by **Nihar Ranjan Patra**
-> [niharpatra2277@gmail.com](mailto:niharpatra2277@gmail.com) · [GitHub](https://github.com/Niharxd) · [LinkedIn](https://www.linkedin.com/in/nihar-patra-98841336a/)
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.13-D4AF37?style=flat-square&logo=python&logoColor=black" alt="Python" />
+  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/React-Frontend-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/Computer%20Vision-OpenCV-5C3EE8?style=flat-square" alt="Computer Vision" />
+</p>
 
-A fully local, beginner-friendly conservation assistant for manuscript and monument images.
-No cloud. No API keys. Everything runs on your machine.
+> Built by **Nihar Ranjan Patra**  
+> [Email](mailto:niharpatra2277@gmail.com) | [GitHub](https://github.com/Niharxd) | [LinkedIn](https://www.linkedin.com/in/nihar-patra-98841336a/)
+
+Heritage AI is a local, beginner-friendly conservation assistant for manuscript and monument images. It supports preliminary image analysis, damage indicators, OCR, risk scoring, conservation suggestions, and historical record management.
+
+**No cloud or API keys required.** The core application runs locally on your machine. Map tiles and geocoding require an internet connection.
+
+---
+
+## Architecture
+
+The following diagram illustrates the main components of Heritage AI, including the React interface, API client, FastAPI backend, image analysis pipeline, archive, reporting, and external geocoding service.
+
+<p align="center">
+  <img src="docs/architecture.png" alt="Heritage AI system architecture showing frontend components, API client, FastAPI backend, image analysis pipeline, archive, reporting, and external geocoding" width="100%" />
+</p>
+
+### Architecture overview
+
+| Layer | Main responsibilities |
+|---|---|
+| Frontend | React and TypeScript views for the archive, statistics, map, comparison, image quality, batch results, and annotations |
+| API client | Connects the frontend to backend endpoints |
+| FastAPI backend | Handles requests, coordinates analysis, manages records, and generates reports |
+| Image analysis | Preprocessing, enhancement, damage detection, OCR, explainability, age estimation, and risk scoring |
+| Archive and reporting | Stores analysis history, notes, groups, and locations; generates PDF reports |
+| External services | OpenStreetMap and Nominatim support map tiles and place geocoding |
+
+### Analysis pipeline
+
+```text
+Observe -> Detect -> Enhance -> Interpret -> Predict -> Explain
+```
+
+The pipeline combines image-processing techniques and rule-based analysis to produce structured findings. Results are intended for preliminary review and conservation decision support, not professional structural diagnosis.
 
 ---
 
@@ -20,207 +57,71 @@ No cloud. No API keys. Everything runs on your machine.
 
 | Statistics | Map View |
 |---|---|
-| ![Stats](frontend/screenshots/06_stats_page.png) | ![Map](frontend/screenshots/07_map_page.png) |
-
----
-
-## Pipeline
-
-```
-Observe → Detect → Enhance → Interpret → Predict → Explain
-```
+| ![Statistics](frontend/screenshots/06_stats_page.png) | ![Map View](frontend/screenshots/07_map_page.png) |
 
 ---
 
 ## Features
 
 ### Analysis
-- **Damage Detection** — detects cracks, stains, fading, and erosion using OpenCV heuristics
-- **Enhancement** — denoising, CLAHE, adaptive thresholding without hallucinating missing content
-- **OCR** — extracts text from manuscripts using Tesseract (11 languages supported)
-- **Structured Labels** — counts and boxes damage types for monuments
-- **Risk Scoring** — LOW / MEDIUM / HIGH with score breakdown and reasons
-- **Heatmap Explainability** — shows which pixels drove the damage detection
-- **Degradation-Based Age Estimate** — estimates artifact age from visual degradation (with disclaimer)
-- **Restoration Suggestions** — maps damage types to specific conservation techniques with urgency levels
+
+- **Damage Detection:** Uses OpenCV heuristics to identify indicators such as cracks, stains, fading, and erosion.
+- **Image Enhancement:** Denoising, CLAHE, and adaptive thresholding without intentionally generating missing content.
+- **OCR:** Extracts manuscript text using Tesseract with support for 11 languages.
+- **Structured Labels:** Counts and marks damage types for monument images.
+- **Risk Scoring:** Produces LOW, MEDIUM, or HIGH risk classifications with score breakdowns and explanations.
+- **Heatmap Explainability:** Visualizes regions associated with detected damage indicators.
+- **Degradation-Based Age Estimate:** Estimates artifact age from visual degradation, with limitations clearly stated.
+- **Restoration Suggestions:** Maps detected damage types to conservation techniques and urgency levels.
 
 ### Image Tools
-- **Heatmap Slider** — blend heatmap 0–100% over the original image in real time
-- **Detection Inspector** — click any row in the detections table to highlight that bounding box on the image
-- **Image Lightbox** — click any of the 4 analysis images to open fullscreen (press Escape to close)
-- **Annotation Tool** — draw coloured rectangles on the image and add notes
 
-### Batch & Export
-- **Batch Analysis** — upload up to 10 images at once, get a summary table
-- **PDF Report** — full conservation report with images, tables, and recommendations
-- **JSON Export** — complete analysis data as JSON
-- **CSV Export** — detections table as a spreadsheet
+- **Heatmap Slider:** Blends the heatmap over the original image in real time.
+- **Detection Inspector:** Highlights a detection region when its table row is selected.
+- **Image Lightbox:** Opens analysis images in fullscreen mode.
+- **Annotation Tool:** Draws rectangles and adds notes to image regions.
+
+### Batch Analysis and Export
+
+- Upload and analyze up to 10 images in one batch.
+- Review results in a summary table.
+- Generate PDF conservation reports with images, tables, and recommendations.
+- Export complete analysis data as JSON.
+- Export detections as CSV.
 
 ### Archive
-- **Analysis History** — every analysis saved automatically with thumbnail, risk, age
-- **Notes / Journal** — write and save conservator field notes per artifact
-- **Artifact Groups** — tag records as the same artifact, view a deterioration timeline
-- **Risk Alert Threshold** — set a score cutoff, records above it get a red alert badge
-- **Trend Chart** — severity and risk score over time (last 20 analyses)
-- **Delete Records** — remove individual analyses from the archive
+
+- Automatically saves analysis history with thumbnails, risk scores, and age estimates.
+- Maintains notes and conservator journal entries.
+- Groups records associated with the same artifact.
+- Tracks deterioration trends over time.
+- Supports configurable risk alert thresholds.
+- Deletes individual analysis records.
 
 ### Map View
-- **Interactive World Map** — Leaflet + OpenStreetMap, no API key needed
-- **Risk-Colored Pins** — green = LOW, gold = MEDIUM, red = HIGH
-- **Nominatim Geocoding** — type any place name (e.g. "Konark, Odisha") to assign a location
-- **Pin Popups** — thumbnail, place name, risk level, domain, date, and "View Analysis" button
 
-### UI / UX
-- **Landing Page** — intro screen with project description, features, and tech stack
-- **Dark Mode** — full dark parchment theme, persists across sessions
-- **Keyboard Shortcuts** — `A` Analyse · `G` Archive · `C` Compare · `S` Stats · `M` Map · `Escape` close
-- **Drag & Drop Upload** — drag images directly onto the upload box
-- **Image Quality Checker** — warns if image is too dark, overexposed, blurry, or too small
-- **Progress Steps** — animated step indicator during analysis
-- **Toast Notifications** — pop-up confirmations for all actions
-- **Compare Tool** — side-by-side diff of two past analyses with severity and risk change
-- **Statistics Page** — total analyses, average severity, risk distribution, domain split, highest/lowest risk
+- Interactive world map using Leaflet and OpenStreetMap.
+- Risk-colored pins for LOW, MEDIUM, and HIGH results.
+- Place-name geocoding through Nominatim.
+- Popups containing thumbnails, locations, risk levels, domains, dates, and analysis links.
 
-### OCR Languages
-English · Hindi · Sanskrit · Tamil · Telugu · Arabic · Persian · Greek · Latin · Chinese Simplified · Japanese
+### User Interface
 
----
-
-## Project Structure
-
-```text
-History/
-  backend/
-    age_estimation.py            # degradation-based age estimate
-    damage_detection.py          # crack/stain/fading/erosion detection
-    enhancement.py               # non-hallucinating restoration
-    explainability.py            # heatmap and risk explanation
-    history_store.py             # archive, notes, groups, locations, settings
-    ocr_engine.py                # Tesseract OCR with multi-language support
-    pdf_report.py                # ReportLab PDF generation
-    pipeline.py                  # connects all engines
-    preprocessing.py             # image normalisation utilities
-    restoration_suggestions.py   # conservation technique recommendations
-    risk_prediction.py           # LOW/MEDIUM/HIGH risk scoring
-  frontend/
-    src/
-      components/
-        AnnotationTool.tsx       # draw and note regions on image
-        BatchResults.tsx         # batch analysis summary table
-        DarkMode.tsx             # dark mode context and hook
-        DetectionInspector.tsx   # click-to-highlight detection regions
-        HeatmapSlider.tsx        # blend heatmap over original
-        ImageLightbox.tsx        # fullscreen image zoom
-        ImageQuality.tsx         # pre-analysis quality checker
-        LocationPicker.tsx       # Nominatim geocoding search
-        ProgressSteps.tsx        # animated pipeline step indicator
-        Toast.tsx                # notification system
-        TrendChart.tsx           # canvas severity/risk line chart
-      pages/
-        Compare.tsx              # side-by-side analysis comparison
-        Gallery.tsx              # archive with notes, groups, alerts
-        LandingPage.tsx          # intro screen
-        MapView.tsx              # Leaflet world map with pins
-        StatsPage.tsx            # archive statistics dashboard
-      App.tsx                    # main app with all views
-      api.ts                     # API client
-      styles.css                 # full heritage theme CSS
-      types.ts                   # TypeScript type definitions
-  training/
-    download_material_dataset.py # auto-download training images from Bing
-    generate_synthetic_data.py   # synthetic damage data generator
-    train_damage_classifier.py   # ResNet18 damage classifier
-    train_enhancement_autoencoder.py
-    train_material_classifier.py # material CNN with hard negatives
-  utils/
-    image_io.py
-    visualization.py
-  data/
-    raw/
-    processed/
-    synthetic/
-  models/                        # trained model weights go here
-  outputs/                       # history.json, groups.json, logs
-  screenshots/                   # demo screenshots
-  app.py                         # FastAPI backend (v3)
-  generate_screenshots.py        # auto-capture demo screenshots
-  requirements.txt
-  start_backend.bat
-  start_frontend.bat
-```
-
----
-
-## Setup
-
-### 1. Python dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Tesseract OCR (optional but recommended)
-
-Download and install from: https://github.com/UB-Mannheim/tesseract/wiki
-
-Make sure `tesseract.exe` is on your PATH. The app runs without it but OCR will show an install message.
-
-For non-English languages, install the language data packs from the same page.
-
-### 3. Node.js
-
-Download from https://nodejs.org/ if `node --version` does not work.
-
-### 4. Frontend dependencies
-
-```bash
-cd frontend
-npm install
-```
-
----
-
-## Run The App
-
-**Option A — Batch files (easiest on Windows)**
-
-Double-click `start_backend.bat`, then double-click `start_frontend.bat`.
-Keep both windows open.
-
-**Option B — Terminal**
-
-Terminal 1 (backend):
-```bash
-python -m uvicorn app:app --host 127.0.0.1 --port 8000
-```
-
-Terminal 2 (frontend):
-```bash
-cd frontend
-npm run dev
-```
-
-Open **http://127.0.0.1:5173**
-
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `A` | Analyse view |
-| `G` | Archive (Gallery) |
-| `C` | Compare |
-| `S` | Statistics |
-| `M` | Map view |
-| `Enter` | Run analysis (when file selected) |
-| `Escape` | Close lightbox / modal |
+- Landing page with project information and feature overview.
+- Dark parchment theme with persistent preferences.
+- Keyboard shortcuts for navigating views.
+- Drag-and-drop image uploads.
+- Image quality warnings for dark, overexposed, blurry, or undersized images.
+- Progress indicators and toast notifications.
+- Side-by-side comparison of previous analyses.
+- Statistics for analysis totals, average severity, risk distribution, and domain split.
 
 ---
 
 ## OCR Language Support
 
-| Language | Tesseract Code |
-|----------|---------------|
+| Language | Tesseract code |
+|---|---|
 | English | `eng` |
 | Hindi | `hin` |
 | Sanskrit | `san` |
@@ -235,25 +136,173 @@ Open **http://127.0.0.1:5173**
 
 ---
 
-## Train Better Models
+## Project Structure
 
-### Damage classifier (ResNet18)
+```text
+History/
+├── backend/
+│   ├── age_estimation.py
+│   ├── damage_detection.py
+│   ├── enhancement.py
+│   ├── explainability.py
+│   ├── history_store.py
+│   ├── ocr_engine.py
+│   ├── pdf_report.py
+│   ├── pipeline.py
+│   ├── preprocessing.py
+│   ├── restoration_suggestions.py
+│   └── risk_prediction.py
+├── frontend/
+│   ├── screenshots/
+│   └── src/
+│       ├── components/
+│       │   ├── AnnotationTool.tsx
+│       │   ├── BatchResults.tsx
+│       │   ├── DarkMode.tsx
+│       │   ├── DetectionInspector.tsx
+│       │   ├── HeatmapSlider.tsx
+│       │   ├── ImageLightbox.tsx
+│       │   ├── ImageQuality.tsx
+│       │   ├── LocationPicker.tsx
+│       │   ├── ProgressSteps.tsx
+│       │   ├── Toast.tsx
+│       │   └── TrendChart.tsx
+│       ├── pages/
+│       │   ├── Compare.tsx
+│       │   ├── Gallery.tsx
+│       │   ├── LandingPage.tsx
+│       │   ├── MapView.tsx
+│       │   └── StatsPage.tsx
+│       ├── App.tsx
+│       ├── api.ts
+│       ├── styles.css
+│       └── types.ts
+├── training/
+│   ├── download_material_dataset.py
+│   ├── generate_synthetic_data.py
+│   ├── train_damage_classifier.py
+│   ├── train_enhancement_autoencoder.py
+│   └── train_material_classifier.py
+├── utils/
+│   ├── image_io.py
+│   └── visualization.py
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   └── synthetic/
+├── models/
+├── outputs/
+├── docs/
+│   └── architecture.png
+├── app.py
+├── generate_screenshots.py
+├── requirements.txt
+├── start_backend.bat
+└── start_frontend.bat
+```
+
+---
+
+## Setup
+
+### 1. Install Python dependencies
+
+Python 3.13 is used by the project documentation.
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Install Tesseract OCR
+
+Tesseract is optional but recommended for OCR functionality.
+
+Download it from the [Tesseract for Windows installation page](https://github.com/UB-Mannheim/tesseract/wiki).
+
+Make sure `tesseract.exe` is available on your PATH. Install the required language data packs for non-English OCR.
+
+### 3. Install Node.js
+
+Download Node.js from [nodejs.org](https://nodejs.org/) if it is not already installed.
+
+### 4. Install frontend dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+---
+
+## Run the Application
+
+### Option A: Windows batch files
+
+1. Double-click `start_backend.bat`.
+2. Double-click `start_frontend.bat`.
+3. Keep both terminal windows open.
+
+### Option B: Run from terminals
+
+Start the backend in the first terminal:
+
+```bash
+python -m uvicorn app:app --host 127.0.0.1 --port 8000
+```
+
+Start the frontend in a second terminal:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open the frontend in your browser:
+
+```text
+http://127.0.0.1:5173
+```
+
+---
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|---|---|
+| `A` | Analyse view |
+| `G` | Archive |
+| `C` | Compare |
+| `S` | Statistics |
+| `M` | Map view |
+| `Enter` | Run analysis when a file is selected |
+| `Escape` | Close lightbox or modal |
+
+---
+
+## Model Training
+
+### Damage classifier
+
+The project includes a ResNet18-based damage classification training script.
 
 ```bash
 python training/train_damage_classifier.py --data data/classification --epochs 15
 ```
 
-Expected folder structure:
-```
+Expected data layout:
+
+```text
 data/classification/
-  crack/
-  stain/
-  fading/
-  erosion/
-  clean/
+├── crack/
+├── stain/
+├── fading/
+├── erosion/
+└── clean/
 ```
 
 ### Enhancement autoencoder
+
+Generate synthetic training data and train the enhancement autoencoder:
 
 ```bash
 python training/generate_synthetic_data.py --count 500
@@ -262,43 +311,56 @@ python training/train_enhancement_autoencoder.py --data data/synthetic --epochs 
 
 ### Dataset sources
 
-- [DIBCO / H-DIBCO](https://paperswithcode.com/dataset/dibco-and-h-dibco) — degraded manuscript documents
-- [Historical-crack18-19](https://pmc.ncbi.nlm.nih.gov/articles/PMC8818920/) — historical building cracks
-- [CODEBRIM](https://datasetninja.com/codebrim) — concrete defect classes
-- [Roboflow crack detection](https://universe.roboflow.com/shm-v25ds/crack-detection-7lgyo) — segmentation datasets
-- [StructDamage](https://arxiv.org/abs/2603.10484) — structural damage classification
+- [DIBCO / H-DIBCO](https://paperswithcode.com/dataset/dibco-and-h-dibco) - degraded manuscript documents.
+- [Historical-crack18-19](https://pmc.ncbi.nlm.nih.gov/articles/PMC8818920/) - historical building cracks.
+- [CODEBRIM](https://datasetninja.com/codebrim) - concrete defect classes.
+- [Roboflow crack detection](https://universe.roboflow.com/shm-v25ds/crack-detection-7lgyo) - crack detection datasets.
+- [StructDamage](https://arxiv.org/abs/2603.10484) - structural damage classification.
 
 ---
 
 ## Known Limitations
 
-- Damage detection uses OpenCV heuristics, not a trained segmentation model. Results vary with image quality.
-- Age estimation is based on visual degradation only — not a scientific dating method.
-- OCR accuracy depends on image quality and Tesseract language pack installation.
-- Map view requires an internet connection for OpenStreetMap tiles and Nominatim geocoding.
+- Damage detection currently uses OpenCV heuristics rather than a trained segmentation model. Results vary with image quality.
+- Age estimation is based on visual degradation and is not a scientific dating method.
+- OCR accuracy depends on image quality and the installed Tesseract language packs.
+- The map view requires an internet connection for OpenStreetMap tiles and Nominatim geocoding.
+- Risk scores and restoration suggestions are preliminary decision-support outputs, not professional conservation certifications.
 
 ---
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Backend | Python 3.13 · FastAPI · Uvicorn |
-| Computer Vision | OpenCV · NumPy · Pillow |
-| OCR | Tesseract · pytesseract |
-| PDF | ReportLab |
-| ML Training | PyTorch · torchvision (ResNet18) |
-| Frontend | React 18 · TypeScript · Vite |
-| Map | Leaflet · OpenStreetMap · Nominatim |
-| Geocoding | OpenStreetMap Nominatim (free, no key) |
+|---|---|
+| Backend | Python 3.13, FastAPI, Uvicorn |
+| Computer Vision | OpenCV, NumPy, Pillow |
+| OCR | Tesseract, pytesseract |
+| PDF Reports | ReportLab |
+| Machine Learning | PyTorch, torchvision, ResNet18 |
+| Frontend | React 18, TypeScript, Vite |
+| Maps | Leaflet, OpenStreetMap |
+| Geocoding | OpenStreetMap Nominatim |
 
 ---
 
-## Production Improvements
+## Future Improvements
 
-- Replace heuristic masks with a trained U-Net or YOLO segmentation model
-- Use EfficientNet or ConvNeXt for damage classification
-- Add Grad-CAM for trained CNN predictions
-- Store reports in SQLite/PostgreSQL instead of JSON files
-- Add user authentication for multi-user conservation teams
-- Deploy with Docker + Nginx for institutional use
+- Replace heuristic masks with a trained U-Net or YOLO segmentation model.
+- Evaluate EfficientNet or ConvNeXt for damage classification.
+- Add Grad-CAM for trained CNN predictions.
+- Store reports in SQLite or PostgreSQL instead of JSON files.
+- Add user authentication for multi-user conservation teams.
+- Deploy with Docker and Nginx for institutional use.
+
+---
+
+<p align="center">
+  <strong>Heritage AI - Supporting cultural heritage preservation through local image analysis and explainable decision support.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Niharxd/HeritageAI">GitHub Repository</a> |
+  <a href="mailto:niharpatra2277@gmail.com">Contact</a> |
+  <a href="https://www.linkedin.com/in/nihar-patra-98841336a/">LinkedIn</a>
+</p>
