@@ -61,6 +61,14 @@ The pipeline combines image-processing techniques and rule-based analysis to pro
 
 ---
 
+## Architecture
+
+The diagram below shows how the conservator interface connects to the API, archive and reporting, and image analysis pipeline.
+
+![Heritage AI architecture](docs/assets/heritage-ai-architecture.png)
+
+---
+
 ## Features
 
 ### Analysis
