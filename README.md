@@ -16,14 +16,6 @@ Heritage AI is a local, beginner-friendly conservation assistant for manuscript 
 
 ---
 
-## Architecture
-
-The following diagram illustrates the main components of Heritage AI, including the React interface, API client, FastAPI backend, image analysis pipeline, archive, reporting, and external geocoding service.
-
-<p align="center">
-  <img src="docs/architecture.png" alt="Heritage AI system architecture showing frontend components, API client, FastAPI backend, image analysis pipeline, archive, reporting, and external geocoding" width="100%" />
-</p>
-
 ### Architecture overview
 
 | Layer | Main responsibilities |
@@ -34,6 +26,14 @@ The following diagram illustrates the main components of Heritage AI, including 
 | Image analysis | Preprocessing, enhancement, damage detection, OCR, explainability, age estimation, and risk scoring |
 | Archive and reporting | Stores analysis history, notes, groups, and locations; generates PDF reports |
 | External services | OpenStreetMap and Nominatim support map tiles and place geocoding |
+
+## Architecture
+
+The diagram below shows how the conservator interface connects to the API, archive and reporting, and image analysis pipeline.
+
+![Heritage AI architecture](docs/assets/heritage-ai-architecture.png)
+
+---
 
 ### Analysis pipeline
 
@@ -58,14 +58,6 @@ The pipeline combines image-processing techniques and rule-based analysis to pro
 | Statistics | Map View |
 |---|---|
 | ![Statistics](frontend/screenshots/06_stats_page.png) | ![Map View](frontend/screenshots/07_map_page.png) |
-
----
-
-## Architecture
-
-The diagram below shows how the conservator interface connects to the API, archive and reporting, and image analysis pipeline.
-
-![Heritage AI architecture](docs/assets/heritage-ai-architecture.png)
 
 ---
 
